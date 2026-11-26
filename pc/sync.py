@@ -170,6 +170,10 @@ class FileSync:
                 if not os.path.isfile(full) or os.path.islink(full):
                     continue
                 rel = os.path.relpath(full, self.root).replace(os.sep, "/")
+                try:
+                    rel.encode("utf-8")
+                except UnicodeEncodeError:
+                    continue  # имя не в UTF-8 — не синхронизируем
                 found[rel] = st
         return found
 
@@ -177,7 +181,7 @@ class FileSync:
         while True:
             try:
                 await self.scan()
-            except OSError as e:
+            except Exception as e:  # noqa: BLE001 — сканер не должен останавливаться
                 log(f"Общая папка: ошибка сканирования: {e}")
             await asyncio.sleep(2)
 

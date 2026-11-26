@@ -32,7 +32,8 @@ wait_for() {
     return 1
 }
 same() { [ "$(cat "$1" 2>/dev/null)" = "$2" ]; }
-same_file() { cmp -s "$1" "$2"; }
+# sha256sum (coreutils) вместо cmp: в минимальных образах нет diffutils
+same_file() { [ -f "$1" ] && [ -f "$2" ] && [ "$(sha256sum <"$1")" = "$(sha256sum <"$2")" ]; }
 gone() { [ ! -e "$1" ]; }
 free_port() { "$PY" -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1])'; }
 
@@ -69,8 +70,10 @@ name=$1
 share_dir=$T/$1/share
 state=$T/$1/share.state
 clipboard_file=$T/$1/clip
+log=$T/$1.log
 CONF
-    java -cp "$T/classes" clipsync.Agent "$T/$1/agent.conf" >"$T/$1.log" 2>&1 &
+    # на Android имена файлов всегда в UTF-8; на JVM они берутся из локали — задаём UTF-8
+    LC_ALL=C.UTF-8 java -cp "$T/classes" clipsync.Agent "$T/$1/agent.conf" >>"$T/$1.log" 2>&1 &
     PIDS+=($!)
     eval "PID_$1=$!"
 }
