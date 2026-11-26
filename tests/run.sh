@@ -148,7 +148,7 @@ echo "== безопасность"
 CLIPSYNC_SECRET=wrong CLIPSYNC_SERVER=127.0.0.1:$PORT "$PY" "$ROOT/pc/clipsync.py" status >"$T/wrong.txt" 2>&1
 if grep -q "неверный секрет" "$T/wrong.txt"; then ok "неверный секрет отклонён"; else bad "неверный секрет отклонён" "$(grep Сервер "$T/wrong.txt")"; fi
 FAKE=$(free_port)
-"$PY" "$ROOT/server/relay.py" serve --host 127.0.0.1 --port "$FAKE" --secret other >"$T/fake.log" 2>&1 &
+"$PY" "$ROOT/server/relay.py" serve --host 127.0.0.1 --port "$FAKE" --secret other --store "$T/fake-store" >"$T/fake.log" 2>&1 &
 PIDS+=($!)
 sleep 1
 CLIPSYNC_SECRET=$SECRET CLIPSYNC_SERVER=127.0.0.1:$FAKE "$PY" "$ROOT/pc/clipsync.py" status >"$T/fake.txt" 2>&1
