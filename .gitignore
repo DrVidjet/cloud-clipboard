@@ -1,0 +1,6 @@
+# локальное окружение: venv, scrcpy-server, d8, собранный агент
+.venv/
+# локальные настройки с секретом (пример — config.env.example)
+config.env
+__pycache__/
+*.pyc

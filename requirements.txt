@@ -1,0 +1,12 @@
+# Python-пакеты для компьютера (ставятся в .venv командой ./clipsync setup)
+cryptography>=42
+
+# Системные пакеты компьютера (ставит install.sh или вручную, см. README.md):
+#   python3, python3-venv        — окружение .venv
+#   JDK 11+ (javac)               — сборка агента для телефона
+#   adb (android-tools)           — настройка телефона по кабелю
+#   curl, coreutils (sha256sum)   — загрузка scrcpy-server и d8 с проверкой SHA-256
+#   wl-clipboard (Wayland) или xclip (X11)
+#   systemd                       — автозапуск (./clipsync install)
+#
+# Сервер (server/relay.py): только python3 3.8+, без пакетов.

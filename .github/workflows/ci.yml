@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  schedule:
+    - cron: "0 5 * * 1" # по понедельникам: ловит изменения в дистрибутивах и релизах
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: bash -n
+        run: bash -n clipsync install.sh install-server.sh tests/run.sh
+      - name: shellcheck
+        run: shellcheck clipsync install.sh install-server.sh tests/run.sh
+      - name: ruff
+        run: pipx run ruff check --select F,E,W --line-length 120 pc server
+      - name: relay.py работает на Python 3.8 синтаксически
+        run: pipx run vermin --target=3.8- --no-tips --violations server/relay.py
+      - name: javac -Werror
+        run: javac -Xlint:all -Werror --release 11 -encoding UTF-8 -d /tmp/cls android/src/clipsync/*.java
+
+  test:
+    name: setup + tests (${{ matrix.image }})
+    runs-on: ubuntu-latest
+    container: ${{ matrix.image }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: debian:stable
+            install: apt-get update && apt-get install -y --no-install-recommends ca-certificates curl python3 python3-venv default-jdk-headless adb xclip
+          - image: ubuntu:24.04
+            install: apt-get update && apt-get install -y --no-install-recommends ca-certificates curl python3 python3-venv default-jdk-headless adb xclip
+          - image: fedora:latest
+            install: dnf install -y curl python3 java-latest-openjdk-devel android-tools xclip findutils
+          - image: archlinux:latest
+            install: pacman -Syu --noconfirm --needed curl python jdk-openjdk android-tools xclip
+          - image: opensuse/tumbleweed
+            install: zypper -n install curl python3 java-21-openjdk-devel android-tools xclip tar gzip gawk
+    steps:
+      - name: install packages (как в README)
+        run: ${{ matrix.install }}
+      - uses: actions/checkout@v4
+      - name: ./clipsync setup
+        run: ./clipsync setup
+      - name: окружение на месте
+        run: |
+          test -f .venv/share/clipsync-agent.jar
+          test -f .venv/share/scrcpy-server.jar
+          .venv/bin/python -c "import cryptography"
+          ./clipsync status
+      - name: tests/run.sh
+        run: tests/run.sh
+
+  installers:
+    name: install-server.sh + install.sh (настоящий systemd)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: install-server.sh
+        run: sudo bash install-server.sh --port 18765 --secret ci-secret
+      - name: служба сервера работает
+        run: |
+          systemctl is-active clipsync-relay
+          sudo journalctl -u clipsync-relay --no-pager | tail -n 5
+      - name: install.sh (из этой копии, без службы)
+        run: CLIPSYNC_SRC=$PWD bash install.sh --server 127.0.0.1:18765 --secret ci-secret --no-service
+      - name: ПК видит сервер
+        run: ~/.local/bin/clipsync status | tee /tmp/status.txt && grep -q "секрет подходит" /tmp/status.txt
+      - name: неверный секрет отклоняется
+        run: |
+          CLIPSYNC_SECRET=wrong ~/.local/bin/clipsync status | tee /tmp/status.txt
+          grep -q "неверный секрет" /tmp/status.txt
+      - name: удаление сервера
+        run: |
+          sudo bash install-server.sh --uninstall
+          ! systemctl is-active clipsync-relay
