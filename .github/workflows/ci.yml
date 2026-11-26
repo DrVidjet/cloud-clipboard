@@ -74,6 +74,8 @@ jobs:
           sudo journalctl -u clipsync-relay --no-pager | tail -n 5
       - name: install.sh (из этой копии, без службы)
         run: CLIPSYNC_SRC=$PWD bash install.sh --server 127.0.0.1:18765 --secret ci-secret --no-service
+      - name: повторный запуск install.sh (всё уже установлено)
+        run: CLIPSYNC_SRC=$PWD bash install.sh --server 127.0.0.1:18765 --secret ci-secret --no-service
       - name: ПК видит сервер
         run: ~/.local/bin/clipsync status | tee /tmp/status.txt && grep -q "секрет подходит" /tmp/status.txt
       - name: неверный секрет отклоняется

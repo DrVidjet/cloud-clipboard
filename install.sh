@@ -50,7 +50,7 @@ missing() {
     have javac || m+=(jdk)
     have adb || m+=(adb)
     have wl-paste || have xclip || m+=(clipboard)
-    printf '%s\n' "${m[@]}"
+    [ ${#m[@]} -eq 0 ] || printf '%s\n' "${m[@]}"
 }
 
 pkg_names() { # логические имена → пакеты дистрибутива
@@ -72,7 +72,7 @@ pkg_names() { # логические имена → пакеты дистриб�
             return 1
         fi
     done
-    printf '%s\n' "${out[@]}"
+    [ ${#out[@]} -eq 0 ] || printf '%s\n' "${out[@]}"
 }
 
 mapfile -t need < <(missing)
